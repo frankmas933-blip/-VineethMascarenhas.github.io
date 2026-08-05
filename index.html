@@ -44,7 +44,8 @@
     --page-muted: #9aa4ae;
   }
 
-  /* ---- fixed brand palette for the artboard itself, lifted from vineethmascarenhas.replit.app ---- */
+  /* ---- fixed brand palette for the artboard itself, originally lifted from the Replit-hosted
+     version of vineeth-website-production.up.railway.app before it moved to Railway ---- */
   .artboard{
     --primary:    #3182ed;
     --primary-ink:#ffffff;
@@ -243,6 +244,12 @@
     color: var(--ink);
     display:block;
     margin-bottom: 2px;
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+  }
+  .news-item .lead:hover{
+    color: var(--primary);
+    border-bottom-color: currentColor;
   }
   .news-item p{
     margin:0;
@@ -384,11 +391,11 @@
           <div class="card">
             <div class="card-head"><span class="dot" style="background:var(--primary)"></span><span class="card-title">Oil &amp; Gas</span></div>
             <div class="news-item">
-              <span class="lead">ADNOC reaches $6.2bn FID on Umm Shaif Gas Cap</span>
+              <a class="lead" href="https://jpt.spe.org/global-exploration-and-production-roundup-fids-discoveries-and-new-frontiers-august-2026" target="_blank" rel="noopener">ADNOC reaches $6.2bn FID on Umm Shaif Gas Cap</a>
               <p>Partners TotalEnergies (20%), Eni (10%) and CNPC (10%) join the UAE gas project, expected to deliver over 600 MMcf/d. <span class="date">1 Aug 2026</span></p>
             </div>
             <div class="news-item">
-              <span class="lead">Equinor discovers oil in the Barents Sea</span>
+              <a class="lead" href="https://jpt.spe.org/global-exploration-and-production-roundup-fids-discoveries-and-new-frontiers-august-2026" target="_blank" rel="noopener">Equinor discovers oil in the Barents Sea</a>
               <p>Skrugard North/Tubåen prospect, 240km northwest of Hammerfest, holds an estimated 1.2–1.7 million Sm3 recoverable — drilled by the Transocean Enabler. <span class="date">1 Aug 2026</span></p>
             </div>
           </div>
@@ -396,11 +403,11 @@
           <div class="card">
             <div class="card-head"><span class="dot" style="background:var(--accent)"></span><span class="card-title">Diving</span></div>
             <div class="news-item">
-              <span class="lead">Indian Navy inducts indigenous diving support vessel Nipun</span>
+              <a class="lead" href="https://www.lifeofsoldiers.com/2026/07/30/delivery-of-second-indigenous-diving-support-vessel-nipun" target="_blank" rel="noopener">Indian Navy inducts indigenous diving support vessel Nipun</a>
               <p>Built by Hindustan Shipyard Limited with ~75% indigenous content, Nipun carries saturation diving, submarine rescue and deep-sea intervention systems plus onboard ROVs. <span class="date">30 Jul 2026</span></p>
             </div>
             <div class="news-item">
-              <span class="lead">Save the date: Underwater Intervention 2026</span>
+              <a class="lead" href="https://www.oceansciencetechnology.com/events/underwater-intervention/" target="_blank" rel="noopener">Save the date: Underwater Intervention 2026</a>
               <p>Co-hosted with the Association of Diving Contractors International and the MTS ROV Committee alongside the International WorkBoat Show — commercial diving, subsea intervention and ROV tech in New Orleans. <span class="date">Event: 2–4 Dec 2026</span></p>
             </div>
           </div>
@@ -408,11 +415,11 @@
           <div class="card">
             <div class="card-head"><span class="dot" style="background:var(--primary)"></span><span class="card-title">ROV</span></div>
             <div class="news-item">
-              <span class="lead">Imenco invests in subsea robotics developer Frontier Robotics</span>
+              <a class="lead" href="https://thenationalrobotarium.com/rov-technology-leader-invests-in-next-generation-underwater-robotics-firm-frontier-robotics/" target="_blank" rel="noopener">Imenco invests in subsea robotics developer Frontier Robotics</a>
               <p>Strategic stake accelerates innovation in subsea autonomy and perception technology for offshore energy and defence applications. <span class="date">14 Jul 2026</span></p>
             </div>
             <div class="news-item">
-              <span class="lead">Rovtech and Franmarine push ROVs beyond oil &amp; gas</span>
+              <a class="lead" href="https://oilandgasafricamiddleeast.com/2026/07/23/offshore-robotics-technology-expands-beyond-oil-and-gas-to-protect-critical-energy-infrastructure/" target="_blank" rel="noopener">Rovtech and Franmarine push ROVs beyond oil &amp; gas</a>
               <p>The VALOR ROV platform, built for subsea energy inspections, is being adapted for maritime security and critical-infrastructure protection across Africa and the Middle East. <span class="date">23 Jul 2026</span></p>
             </div>
           </div>
@@ -420,11 +427,11 @@
           <div class="card">
             <div class="card-head"><span class="dot" style="background:var(--accent)"></span><span class="card-title">Subsea</span></div>
             <div class="news-item">
-              <span class="lead">Saipem completes Neptun Deep installation campaign</span>
+              <a class="lead" href="https://jpt.spe.org/global-exploration-and-production-roundup-fids-discoveries-and-new-frontiers-august-2026" target="_blank" rel="noopener">Saipem completes Neptun Deep installation campaign</a>
               <p>Subsea installation work wraps in the Romanian Black Sea as part of the broader Neptun Deep gas development. <span class="date">1 Aug 2026</span></p>
             </div>
             <div class="news-item">
-              <span class="lead">Baker Hughes wins subsea systems contract for Angola's Greater PAJ field</span>
+              <a class="lead" href="https://worldoil.com/news/2026/6/25/baker-hughes-wins-subsea-systems-contract-for-angola-s-greater-paj-field/" target="_blank" rel="noopener">Baker Hughes wins subsea systems contract for Angola's Greater PAJ field</a>
               <p>Azule Energy award covers subsea production systems for Angola's first integrated cross-block development; first oil targeted H1 2029. <span class="date">25 Jun 2026</span></p>
             </div>
           </div>
@@ -487,7 +494,7 @@
           <div class="footer-links">
             <a href="mailto:vingineer12@gmail.com">Email</a>
             <a href="https://www.linkedin.com/in/vineeth-mascarenhas/">LinkedIn</a>
-            <a href="https://vineethmascarenhas.replit.app/">Portfolio</a>
+            <a href="https://vineeth-website-production.up.railway.app/">Portfolio</a>
           </div>
         </div>
         <div class="sources">
