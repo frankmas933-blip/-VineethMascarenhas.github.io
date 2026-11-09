@@ -347,9 +347,124 @@
     font-size: 10.5px;
     color: rgba(255,255,255,0.5);
   }
+
+  /* ---------- print ----------
+     This is the DEFAULT print path: a plain browser print (Ctrl+P / "Print" /
+     "Save as PDF") on the live artifact/website page, using whatever paper
+     size and orientation the person picks in their print dialog — NOT the
+     fixed-size LinkedIn-document export (that's tools/generate_pdf.js, which
+     injects its own fixed-size @page rule at export time — see that script's
+     header comment — specifically so it doesn't fight with this default path).
+     print-color-adjust forces the background gradients/fills to actually
+     render when printed — browsers drop them by default.
+     Two things used to break a plain print here: (1) a hardcoded
+     `@page { size: 1080px 2200px }` previously lived in this file and forced
+     that custom size on every print, regardless of the paper/orientation the
+     person actually chose, so real printers/PDF engines paginated the single
+     1080x2200 canvas onto their own page size with no regard for where the
+     cuts fell; (2) nothing told the browser to keep each card/panel/footer
+     together, so a page break could fall in the middle of one. Fixed by
+     leaving @page size unset (respects the person's own paper choice) and
+     marking every card-like block `break-inside: avoid` so page breaks only
+     fall between blocks, never through one. */
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  @media print{
+    html, body{ background:#fff !important; }
+    .page{ padding:0 !important; min-height:0 !important; background:#fff !important; }
+    .stage{ padding:0 !important; width:100% !important; max-width:none !important; overflow:visible !important; }
+    .artboard{ width:100% !important; }
+
+    /* Keep each visual block intact across a page break — this is what
+       actually fixes "boxes don't space correctly into pages": without it,
+       the browser breaks wherever the text happens to run out of room on a
+       page, which is usually mid-card. */
+    .topbar, .hero, .card, .panel, .news-item, .footer{
+      break-inside: avoid;
+      page-break-inside: avoid; /* older print engines ignore break-inside */
+    }
+
+    /* .cards is `display:grid` on screen (two-up layout) — but break-inside:
+       avoid on a grid item is NOT reliably honored across browser print
+       engines (confirmed 19 Oct 2026: it worked in this sandbox's headless
+       Chromium, but a real-world PDF export from Edge/Chromium 155 split a
+       card mid-sentence across a page boundary anyway — this is a known
+       Chromium print-fragmentation gap for grid children, not a bug in the
+       break-inside rule itself). Switching to plain block stacking for print
+       makes every .card an ordinary block-level box in normal flow, which is
+       the one scenario break-inside:avoid is reliably honored in across
+       every browser/print-engine tested, old or new. This applies the same
+       single-column stack on every paper size/orientation now, trading the
+       on-screen 2-up layout's print appearance for guaranteed correctness —
+       no box may ever be split across a page again. `gap` only works on
+       grid/flex, so .card gets its own margin-bottom to keep the spacing. */
+    .cards{ display:block; }
+    .card{ margin-bottom: 14px; }
+    .card:last-child{ margin-bottom: 0; }
+
+    /* Market Snapshot always starts on its own fresh page, and the footer
+       always starts on the page after that — each gets a forced break
+       rather than being left to share whatever space happens to be left
+       over. Without the footer's own break, the same real-world PDF export
+       above showed the footer being silently dropped off the end of the
+       document entirely (not pushed to a new page, just missing) when it
+       didn't quite fit alongside the panel on one page. Giving each of them
+       its own page removes that fit calculation altogether. Scoped to
+       .panel/.footer only: the 4 category cards above (Oil & Gas, Subsea,
+       Diving, ROV) only gained the block-display change above; nothing else
+       about them changed. */
+    .panel{
+      break-before: page;
+      page-break-before: always; /* older print engines ignore break-before */
+    }
+    .footer{
+      break-before: page;
+      page-break-before: always;
+    }
+
+    /* The chart SVG has width="100%" with viewBox "0 0 720 300" (2.4:1), so
+       on screen its height scales up with whatever width it's given. In
+       print, .artboard is forced to 100% of the page width above — on a
+       wide/landscape page that makes the chart tall, and break-inside:avoid
+       can only keep a box off a page break if the box actually fits on an
+       empty page; it cannot shrink an oversized one. Measuring this sandbox's
+       own print engine showed the panel comfortably fitting with room to
+       spare, but a real export from the artifact still showed its footnote
+       paragraph cut off mid-sentence, meaning some real-world combination of
+       margins/header-footer bands this sandbox can't fully replicate was
+       eating enough space to push it over. Rather than keep chasing exact
+       numbers for an engine this sandbox can't reproduce, fix the chart to a
+       conservative, constant print height — independent of page width or
+       orientation entirely — so the whole panel has a large, fixed safety
+       margin against every page size tested (A4/Letter, portrait/landscape)
+       instead of merely "should just fit". Presentation attributes like the
+       inline width="100%" yield to CSS, so no !important is needed here. */
+    /* Bumped 160px -> 240px (+50%) on 9 Nov 2026 per user feedback — the fixed-height
+       chart read as too small/cramped to view comfortably in the exported PDF. 240px
+       still leaves a large safety margin: this week's full artboard measured 1849px
+       against the 2200px fixed-page budget (generate_pdf.js refuses to export if this
+       is ever exceeded), so the +80px added here is well within the ~350px of slack
+       before this change — but re-check generate_pdf.js's measured height after any
+       future content growth (longer item descriptions, a longer footnote) rather than
+       assuming this margin holds forever. */
+    .panel svg{
+      width: auto;
+      height: 240px;
+      display: block;
+      margin: 4px auto 0;
+    }
+  }
+  @page{ margin: 12mm; }
 </style>
 
 <div class="page">
+  <!-- dev note: this .artboard is a fixed-width (1080px) on-screen canvas, but prints
+       at the paper size/orientation the person picks (see the @media print rules above) —
+       it does NOT force a fixed page size on a plain browser print anymore. For the
+       fixed-size (1080x2200px), single-page LinkedIn "document" PDF specifically, use
+       tools/generate_pdf.js, which injects its own @page override at export time rather
+       than relying on one baked into this file. A manual browser screenshot of the panel
+       below also works for a PNG. -->
+
   <div class="stage">
     <div class="artboard" id="artboard">
 
@@ -368,7 +483,7 @@
         <div class="hero-eyebrow">Subsea · Marine · Oil &amp; Gas · Diving · ROV</div>
         <h1>The Week in Subsea &amp;<br><span>Offshore Energy</span></h1>
         <p>A roundup of contracts, technology, safety notices and market signals across the diving, marine, oil &amp; gas, ROV and subsea sectors.</p>
-        <div class="date-chip">03 AUG – 10 AUG 2026</div>
+        <div class="date-chip">02 NOV – 09 NOV 2026</div>
       </div>
 
       <div class="main">
@@ -377,48 +492,48 @@
           <div class="card">
             <div class="card-head"><span class="dot" style="background:var(--primary)"></span><span class="card-title">Oil &amp; Gas</span></div>
             <div class="news-item">
-              <a class="lead" href="https://www.bp.com/press-and-publications/press-releases/bp-to-acquire-woodsides-70-interest-in-calypso-project" target="_blank" rel="noopener">BP to take full ownership of Trinidad's Calypso gas project, buying out Woodside's 70% stake</a>
-              <p>BP will acquire Woodside Energy's 70% interest in the deepwater Calypso project offshore Trinidad and Tobago, taking Block TTDAA 14 to 100% BP ownership and sole operatorship of the 3.5 Tcf gas discovery, with completion targeted by end-2026. <span class="date">6 Aug 2026</span></p>
+              <a class="lead" href="https://www.ogj.com/exploration-development/news/55416978/murphy-oil-executes-production-sharing-contracts-offshore-mauritania" target="_blank" rel="noopener">Murphy Oil signs production sharing contracts for two offshore exploration blocks in Mauritania</a>
+              <p>Murphy Oil executed production sharing contracts for the C-10 and Tiof blocks off Mauritania's coast, spanning roughly 3.1 million acres combined; Murphy's subsidiaries hold a 90% working interest and will operate both blocks, with state-owned Societe Mauritanienne des Hydrocarbures holding the remaining 10% carried interest. <span class="date">3 Nov 2026</span></p>
             </div>
             <div class="news-item">
-              <a class="lead" href="https://www.oedigital.com/news/541458-equinor-finds-oil-near-johan-castberg-field-in-barents-sea" target="_blank" rel="noopener">Equinor strikes oil near Johan Castberg in fresh Barents Sea find</a>
-              <p>Equinor and partners Vår Energi and Petoro found 7.6–10.5 million barrels of recoverable oil equivalent at the Skrugard North Tubåen prospect, drilled by the Transocean Enabler rig near the Johan Castberg field, with a low-cost subsea tie-back to Castberg's infrastructure now under evaluation. <span class="date">23 Jul 2026</span></p>
+              <a class="lead" href="https://www.oedigital.com/news/544136-bp-finds-hydrocarbons-in-brazil-s-tupinamb-offshore-block-as-drilling-continues" target="_blank" rel="noopener">BP finds hydrocarbons at the Tupinamba exploration well in Brazil's Santos Basin</a>
+              <p>BP's 1-BP-14-SPS well in the Tupinamba block, about 275km off Brazil's coast in 2,343 metres of water, encountered hydrocarbons in its post-salt section as drilling continues toward the presalt target; BP operates the block with a 50% stake alongside Shell, whose 50% interest remains subject to regulatory approval. <span class="date">28 Oct 2026</span></p>
             </div>
           </div>
 
           <div class="card">
             <div class="card-head"><span class="dot" style="background:var(--accent)"></span><span class="card-title">Diving</span></div>
             <div class="news-item">
-              <a class="lead" href="https://www.imca-int.com/news-events/imca-news/news/imca-urges-focus-on-diver-safety-amid-rising-demand-for-vessel-maintenance-as-strait-of-hormuz-reopens/" target="_blank" rel="noopener">IMCA sounds diver-safety alarm as Strait of Hormuz reopening triggers hull-cleaning surge</a>
-              <p>IMCA warned of unacceptably high fatality and injury rates in underwater ship husbandry after orders for diver-led hull cleaning and inspection jumped more than 30-fold following the Strait of Hormuz reopening, with roughly 600 vessels queued for maintenance work in the Gulf. <span class="date">24 Jun 2026</span></p>
+              <a class="lead" href="https://www.marketsandmarkets.com/Market-Reports/diving-equipment-market-2567725.html" target="_blank" rel="noopener">Buzzing market: global diving equipment market set to nearly double by 2035</a>
+              <p>MarketsandMarkets values the global diving equipment market at $5.10B in 2025, growing to $9.70B by 2035 at a 6.6% CAGR, as demand for commercial, recreational and military diving gear climbs alongside expanding subsea and decommissioning work. <span class="date">Jul 2026 report</span></p>
             </div>
             <div class="news-item">
-              <a class="lead" href="https://www.navaltoday.com/2026/08/03/hindustan-shipyard-delivers-second-diving-support-vessel-to-indian-navy" target="_blank" rel="noopener">Indian Navy takes delivery of new saturation-diving support vessel Nipun</a>
-              <p>Hindustan Shipyard Limited delivered the 118m diving support vessel Nipun — India's second indigenous DSV, fitted with deep-sea saturation diving systems and ROVs — to the Indian Navy at Visakhapatnam. <span class="date">30 Jul 2026</span></p>
+              <a class="lead" href="https://www.imca-int.com/news-events/events/imca-events/south-america-regional-meeting-november-2026/" target="_blank" rel="noopener">Save the date: IMCA South America Regional Meeting, Rio de Janeiro</a>
+              <p>IMCA returns to Rio de Janeiro for its South America Regional Meeting, bringing together marine contractors, divers and subsea operators from across the region to discuss safety, competence and the latest industry guidance; free to attend for IMCA members. <span class="date">Event: 18 Nov 2026</span></p>
             </div>
           </div>
 
           <div class="card">
             <div class="card-head"><span class="dot" style="background:var(--primary)"></span><span class="card-title">ROV</span></div>
             <div class="news-item">
-              <a class="lead" href="https://www.fugro.com/news/business-news/2026/fugro-awarded-three-year-deepwater-rov-contract-supporting-offshore-energy-development-in-india" target="_blank" rel="noopener">Fugro wins three-year deepwater ROV contract to support ONGC drilling offshore India</a>
-              <p>Vantage International Management Company awarded Fugro Survey India a three-year contract for FCV3000 work-class ROV support — drilling/completion monitoring, BOP and well-control observation, seabed inspection — aboard the drillship Platinum Explorer, in water depths up to 3,000m. <span class="date">6 Aug 2026</span></p>
+              <a class="lead" href="https://oceannews.com/news/energy/fugro-to-conduct-post-installation-survey-for-east-anglia-two/" target="_blank" rel="noopener">Fugro to run ROV seabed surveys for Cadeler at the East Anglia TWO wind farm</a>
+              <p>Cadeler selected Fugro to carry out post-installation seabed surveys across 64 monopile foundation locations at the 960MW East Anglia TWO offshore wind farm in UK waters; from early 2027, Fugro will deploy its FCV 600 work-class ROV from Cadeler's installation vessel for the inspection and installation-support work. <span class="date">4 Nov 2026</span></p>
             </div>
             <div class="news-item">
-              <a class="lead" href="https://worldoil.com/news/2026/8/7/bourbon-s-new-imr-vessel-begins-offshore-operations-under-india-contract/" target="_blank" rel="noopener">Bourbon's new dual-ROV IMR vessel Evolution 810 begins its first offshore contract in India</a>
-              <p>Bourbon's newbuild Evolution 810 — fitted with two 200hp work-class ROVs and two heave-compensated cranes, rated to 3,000m water depth — started its maiden long-term inspection, maintenance and repair charter offshore India. <span class="date">7 Aug 2026</span></p>
+              <a class="lead" href="https://oceannews.com/news/subsea-and-survey/omega-subsea-strengthens-position-in-offshore-renewables-with-long-term-nkt-agreement/" target="_blank" rel="noopener">Omega Subsea secures second five-year ROV contract with NKT for cable-layer Eleonora</a>
+              <p>Omega Subsea will supply ROV services for NKT's newbuild cable-laying vessel Eleonora under a second five-year agreement, following an earlier deal for sister vessel NKT Victoria; the award is part of a wider fleet expansion that will take Omega Subsea's ROV count past 30 systems by mid-2028. <span class="date">25 Sep 2026</span></p>
             </div>
           </div>
 
           <div class="card">
             <div class="card-head"><span class="dot" style="background:var(--accent)"></span><span class="card-title">Subsea</span></div>
             <div class="news-item">
-              <a class="lead" href="https://www.offshore-mag.com/subsea/news/55396552/intermoor-petrobras-lines-up-intermoor-for-subsea-moorings-support" target="_blank" rel="noopener">Intermoor lands third Petrobras contract in a year for subsea mooring services in Brazil</a>
-              <p>Acteon's Intermoor business won a three-year contract from Petrobras to inspect, maintain and prepare subsea mooring and anchoring equipment — chains, wire ropes, anchors, connectors — across Petrobras's Brazilian offshore assets, its third Petrobras award in under a year. <span class="date">4 Aug 2026</span></p>
+              <a class="lead" href="https://www.worldoil.com/news/2026/11/2/subsea7-wins-aker-bp-lyra-contract-offshore-norway/" target="_blank" rel="noopener">Subsea7 wins Aker BP's Lyra EPCI contract offshore Norway</a>
+              <p>Aker BP awarded Subsea7 a 'substantial' $150-300 million contract to engineer, procure, construct and install gas-lift and production pipelines and associated subsea infrastructure for the Lyra field, about 44km from the Gjoa platform; the pipe-in-pipe system will tie back through existing Nova field infrastructure, targeting first oil in 2028. <span class="date">2 Nov 2026</span></p>
             </div>
             <div class="news-item">
-              <a class="lead" href="https://www.dof.com/news/contract-extension-for-skandi-buzios" target="_blank" rel="noopener">DOF and TechnipFMC's pipelay vessels Skandi Búzios and Skandi Recife extended with Petrobras into 2028</a>
-              <p>Petrobras extended charters for the pipelay support vessels Skandi Búzios (516 additional days) and Skandi Recife (550 additional days) — both 50/50 DOF-TechnipFMC joint-venture vessels — pushing contracts due to expire in Q3 2026 out to January 2028. <span class="date">31 Jul 2026</span></p>
+              <a class="lead" href="https://worldoil.com/news/2026/10/28/tullow-hires-deepocean-for-jubilee-gas-lift-riser-work-offshore-ghana/" target="_blank" rel="noopener">DeepOcean wins Tullow Oil's gas-lift riser retermination job at Ghana's Jubilee field</a>
+              <p>DeepOcean's EMEA division will manage disconnection, deck-side retermination and reconnection of a gas-lift riser linking the FPSO Kwame Nkrumah to the Jubilee field's subsea production system, using the recently refurbished construction vessel Orient Adventurer; offshore work is scheduled for the fourth quarter of 2026. <span class="date">28 Oct 2026</span></p>
             </div>
           </div>
 
@@ -427,12 +542,12 @@
         <div class="panel">
           <div class="panel-head">
             <div>
-              <div class="panel-title">Safety Snapshot — IMCA Member Fatalities</div>
-              <div class="panel-sub">Offshore/marine contracting fatalities — current year vs. prior year</div>
+              <div class="panel-title">Market Snapshot — Offshore ROV &amp; AUV Market Growth</div>
+              <div class="panel-sub">Market size, US$ billions — 2025 vs. 2035 forecast</div>
             </div>
             <div class="legend">
               <span><i style="background:var(--series-a)"></i>2025</span>
-              <span><i style="background:var(--series-b)"></i>2024</span>
+              <span><i style="background:var(--series-b)"></i>2035 Forecast</span>
             </div>
           </div>
 
@@ -454,20 +569,20 @@
             <line x1="60" y1="260" x2="660" y2="260" stroke="var(--muted)" stroke-width="1.3"/>
 
             <!-- Group 1: scale 5.0 px per unit, baseline 260 (units vary by chart.mode — $B for growth, count for safety) -->
-            <rect x="110" y="225" width="90" height="35" rx="4" fill="var(--series-a)"/>
-            <text x="155" y="214" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)" font-family="'Inter', sans-serif" font-variant-numeric="tabular-nums">7</text>
-            <rect x="220" y="245" width="90" height="15" rx="4" fill="var(--series-b)"/>
-            <text x="265" y="234" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)" font-family="'Inter', sans-serif" font-variant-numeric="tabular-nums">3</text>
-            <text x="210" y="284" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)" font-family="'Inter', sans-serif">Total Fatalities</text>
+            <rect x="110" y="216" width="90" height="44" rx="4" fill="var(--series-a)"/>
+            <text x="155" y="205" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)" font-family="'Inter', sans-serif" font-variant-numeric="tabular-nums">$8.80B</text>
+            <rect x="220" y="173.5" width="90" height="86.5" rx="4" fill="var(--series-b)"/>
+            <text x="265" y="162.5" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)" font-family="'Inter', sans-serif" font-variant-numeric="tabular-nums">$17.30B</text>
+            <text x="210" y="284" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)" font-family="'Inter', sans-serif">Offshore ROV Market</text>
 
             <!-- Group 2 -->
-            <rect x="410" y="240" width="90" height="20" rx="4" fill="var(--series-a)"/>
-            <text x="455" y="229" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)" font-family="'Inter', sans-serif" font-variant-numeric="tabular-nums">4</text>
-            <rect x="520" y="250" width="90" height="10" rx="4" fill="var(--series-b)"/>
-            <text x="565" y="239" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)" font-family="'Inter', sans-serif" font-variant-numeric="tabular-nums">2</text>
-            <text x="510" y="284" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)" font-family="'Inter', sans-serif">Offshore Fatalities</text>
+            <rect x="410" y="240.75" width="90" height="19.25" rx="4" fill="var(--series-a)"/>
+            <text x="455" y="229.75" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)" font-family="'Inter', sans-serif" font-variant-numeric="tabular-nums">$3.85B</text>
+            <rect x="520" y="189" width="90" height="71" rx="4" fill="var(--series-b)"/>
+            <text x="565" y="178" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)" font-family="'Inter', sans-serif" font-variant-numeric="tabular-nums">$14.20B</text>
+            <text x="510" y="284" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)" font-family="'Inter', sans-serif">AUV Market</text>
           </svg>
-          <div class="chart-foot">IMCA Safety Statistics Report 2025 (published 21 Jul 2026), covering 1.02bn+ working hours across 167 contractor members, remains the latest published comparative safety data as of this edition (no fresher period-over-period figures were independently verifiable from IOGP, OGUK or BSEE within the 45-60 day window this cycle). Injury rates improved (LTIFR to 0.27 from 0.30; TRIR to 0.98 from 1.10), but fatalities rose from 3 to 7 (2 to 4 offshore) — IMCA warns rate trends alone no longer capture real risk. Source: IMCA.</div>
+          <div class="chart-foot">Offshore ROV Market: $8.8B (2025) to $17.3B by 2035, 7.0% CAGR (Market.us). AUV Market: $3.85B (2025) to $14.2B by 2035, 14.2% CAGR (Next Move Strategy Consulting). Running growth-mode out of the usual every-other-week sequence again this edition: no IMCA/IOGP/OGUK/BSEE comparative safety dataset has published within the 45-60 day freshness window this cycle (IMCA's 2025 Safety Statistics Report, published 21 Jul 2026, and IOGP's 2025 safety performance indicators, published 18 Jun 2026, are both well past the limit). Segment rotates to ROV &amp; AUV for this edition (previously Oil &amp; Gas, 26 Oct-02 Nov 2026; Subsea, 19-26 Oct 2026; Diving Equipment/Offshore Robotics, 12-19 Oct 2026; Subsea, 05-12 Oct 2026; ROV &amp; AUV Robotics, 28 Sep-05 Oct 2026; Diving, 21-28 Sep 2026; Oil &amp; Gas Services, 14-21 Sep 2026; Subsea Systems/Shallow-Depth SURF, 31 Aug-07 Sep 2026).</div>
         </div>
       </div>
 
@@ -484,18 +599,19 @@
           </div>
         </div>
         <div class="sources">
-          Sources: <a href="https://www.bp.com/press-and-publications/press-releases/bp-to-acquire-woodsides-70-interest-in-calypso-project">BP (Calypso project, Trinidad)</a> ·
-          <a href="https://www.oedigital.com/news/541458-equinor-finds-oil-near-johan-castberg-field-in-barents-sea">OE Digital (Equinor Barents Sea discovery)</a> ·
-          <a href="https://www.imca-int.com/news-events/imca-news/news/imca-urges-focus-on-diver-safety-amid-rising-demand-for-vessel-maintenance-as-strait-of-hormuz-reopens/">IMCA (diver safety, Strait of Hormuz)</a> ·
-          <a href="https://www.navaltoday.com/2026/08/03/hindustan-shipyard-delivers-second-diving-support-vessel-to-indian-navy">Naval Today (DSV Nipun delivery)</a> ·
-          <a href="https://www.fugro.com/news/business-news/2026/fugro-awarded-three-year-deepwater-rov-contract-supporting-offshore-energy-development-in-india">Fugro (ONGC/Vantage ROV contract)</a> ·
-          <a href="https://worldoil.com/news/2026/8/7/bourbon-s-new-imr-vessel-begins-offshore-operations-under-india-contract/">World Oil (Bourbon Evolution 810)</a> ·
-          <a href="https://www.offshore-mag.com/subsea/news/55396552/intermoor-petrobras-lines-up-intermoor-for-subsea-moorings-support">Offshore Magazine (Intermoor/Petrobras mooring)</a> ·
-          <a href="https://www.dof.com/news/contract-extension-for-skandi-buzios">DOF Group (Skandi Búzios/Recife extension)</a> ·
-          <a href="https://www.imca-int.com/news-events/imca-news/news/safety-stats-report-2025/">IMCA (Safety Statistics Report 2025)</a>
+          Sources: <a href="https://www.ogj.com/exploration-development/news/55416978/murphy-oil-executes-production-sharing-contracts-offshore-mauritania">OGJ (Murphy Oil/Mauritania PSCs)</a> ·
+          <a href="https://www.oedigital.com/news/544136-bp-finds-hydrocarbons-in-brazil-s-tupinamb-offshore-block-as-drilling-continues">OE Digital (BP/Tupinamba Discovery)</a> ·
+          <a href="https://www.marketsandmarkets.com/Market-Reports/diving-equipment-market-2567725.html">MarketsandMarkets (Diving Equipment Market)</a> ·
+          <a href="https://www.imca-int.com/news-events/events/imca-events/south-america-regional-meeting-november-2026/">IMCA (South America Regional Meeting)</a> ·
+          <a href="https://oceannews.com/news/energy/fugro-to-conduct-post-installation-survey-for-east-anglia-two/">Ocean News (Fugro/Cadeler East Anglia TWO)</a> ·
+          <a href="https://oceannews.com/news/subsea-and-survey/omega-subsea-strengthens-position-in-offshore-renewables-with-long-term-nkt-agreement/">Ocean News (Omega Subsea/NKT Eleonora)</a> ·
+          <a href="https://www.worldoil.com/news/2026/11/2/subsea7-wins-aker-bp-lyra-contract-offshore-norway/">World Oil (Subsea7/Aker BP Lyra)</a> ·
+          <a href="https://worldoil.com/news/2026/10/28/tullow-hires-deepocean-for-jubilee-gas-lift-riser-work-offshore-ghana/">World Oil (DeepOcean/Tullow Ghana)</a> ·
+          <a href="https://market.us/report/global-offshore-rov-market/">Market.us (Offshore ROV Market)</a> ·
+          <a href="https://www.nextmsc.com/report/autonomous-underwater-vehicles-auvs-market-5458">Next Move Strategy Consulting (AUV Market)</a>
         </div>
         <div class="footer-bottom">
-          <div class="hashtags">#Subsea #ROV #OffshoreEnergy #MarineOperations #OilAndGas #DivingSafety</div>
+          <div class="hashtags">#Subsea #ROV #OffshoreEnergy #MarineOperations #OilAndGas #Diving</div>
           <div class="copyright">Vineeth Mascarenhas · General Manager</div>
         </div>
       </div>
